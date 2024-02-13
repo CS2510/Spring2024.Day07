@@ -16,6 +16,7 @@
     </canvas>
     <script src="Time.js"></script>
     <script src="Scene.js"></script>
+    <script src="GameObject.js"></script>
     <script>
 
         /** Place to store values that last across scenes */
@@ -23,14 +24,53 @@
             static score = 0;
         }
 
-        /** The main scene in our game */
-        class MainScene extends Scene {
-            constructor() {
-                super()
-                this.x = 0
-                this.y = 0
+        class GrowingScoreGameObject extends GameObject{
+            update(ctx){
+                Globals.score++
             }
-            update() {
+            draw(ctx){
+                ctx.fillStyle = "white"
+                ctx.font = "30px Times"
+                ctx.fillText(Globals.score, 0, 30)
+            }
+        }
+
+        class FinalScoreGameObject extends GameObject{
+            update(ctx){
+            }
+            draw(ctx){
+                ctx.fillStyle = "white"
+                ctx.font = "30px Times"
+                ctx.fillText(Globals.score, 0, 30)
+            }
+        }
+
+        class YouDiedGameObject extends GameObject{
+            constructor(){
+                super();
+                this.timeSinceDeath = 0;
+            }
+            update(){
+                this.timeSinceDeath += Time.ms
+                if (this.timeSinceDeath > 2000) {
+                    Globals.score = 0
+                    currentScene = new MainScene()
+                }
+            }
+            draw(ctx){
+                ctx.fillStyle = "red"
+                ctx.font = "30px Comic Sans MS"
+                ctx.fillText("You Died", 30, 60)
+            }
+        }
+
+        class CircleGameObject extends GameObject{
+            constructor(){
+                super();
+                this.x = 0;
+                this.y = 0;
+            }
+            update(){
                 let speed = 100
                 if (Input.keysDown.includes("ArrowLeft"))
                     this.x -= speed / Time.fps
@@ -40,19 +80,12 @@
                     this.y -= speed / Time.fps
                 if (Input.keysDown.includes("ArrowDown"))
                     this.y += speed / Time.fps
-                Globals.score++
-
+                
                 if (this.x < 0) {
                     currentScene = new DeadScene()
                 }
             }
-            draw(ctx) {
-                //Clear the canvas
-                ctx.fillStyle = "lightgray"
-                ctx.beginPath()
-                ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height)
-                ctx.fill()
-
+            draw(ctx){
                 //Draw the circle with a green interior
                 //and purple outline
                 ctx.beginPath();
@@ -62,53 +95,41 @@
                 ctx.arc(50 + this.x, 50 + this.y, 50, 0, Math.PI * 2)
                 ctx.fill()
                 ctx.stroke()
-
-                ctx.fillStyle = "white"
-                ctx.font = "30px Times"
-                ctx.fillText(Globals.score, 0, 30)
             }
-            drawUI(ctx) {
-                ctx.fillStyle = "cyan"
-                ctx.fillRect(100, 100, 100, 50);
+        }
+
+
+
+        /** The main scene in our game */
+        class MainScene extends Scene {
+            constructor() {
+                super("lightgray")
+                this.x = 0
+                this.y = 0
+
+                let circleGameObject = new CircleGameObject()
+                this.gameObjects.push(circleGameObject);
+
+                let scoreGameObject = new GrowingScoreGameObject()
+                this.gameObjects.push(scoreGameObject);
             }
         }
 
         /** The final scene in our game */
         class DeadScene extends Scene {
             constructor() {
-                super()
+                super("black")
                 this.timeSinceDeath = 0
+
+                let scoreGameObject = new FinalScoreGameObject()
+                this.gameObjects.push(scoreGameObject);
+
+                let youDiedGameObject = new YouDiedGameObject();
+                this.gameObjects.push(youDiedGameObject)
             }
-            update() {
-                this.timeSinceDeath += Time.ms
-                if (this.timeSinceDeath > 2000) {
-                    Globals.score = 0
-                    currentScene = new MainScene()
-                }
-            }
-            drawUI(ctx) {
-
-            }
-            draw(ctx) {
-                ctx.fillStyle = "black"
-                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-
-                ctx.fillStyle = "red"
-                ctx.font = "30px Comic Sans MS"
-                ctx.fillText("You Died", 30, 60)
-
-
-                ctx.fillStyle = "white"
-                ctx.font = "30px Times"
-                ctx.fillText(Globals.score, 0, 30)
-            }
-
         }
 
-        let mainScene = new MainScene();
-        let deadScene = new DeadScene();
-
-        let currentScene = mainScene;
+        let currentScene = new MainScene();
 
         class Input {
             /** Store input states for our game */
@@ -152,9 +173,6 @@
 
             //Draw in world space
             currentScene.draw(ctx)
-
-            //Draw in Screen/UI space
-            currentScene.drawUI(ctx)
         }
 
         /** Setup the game **/
